@@ -12,8 +12,8 @@
         }
 
         body {
-            width: 380px;
-            min-height: 500px;
+            width: 400px;
+            min-height: 600px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -90,6 +90,12 @@
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            margin-bottom: 5px;
         }
 
         .btn:disabled {
@@ -169,7 +175,8 @@
         }
 
         .input-group input,
-        .input-group select {
+        .input-group select,
+        .input-group textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -177,9 +184,11 @@
             background: rgba(255, 255, 255, 0.1);
             color: white;
             font-size: 13px;
+            font-family: inherit;
         }
 
-        .input-group input::placeholder {
+        .input-group input::placeholder,
+        .input-group textarea::placeholder {
             color: rgba(255, 255, 255, 0.6);
         }
 
@@ -198,6 +207,95 @@
             height: 16px;
             opacity: 0.8;
         }
+
+        /* New styles for efficiency features */
+        .efficiency-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .registration-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .status-indicator {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .status-indicator.registered {
+            color: #4CAF50;
+        }
+
+        .status-indicator.unregistered {
+            color: #FFA726;
+        }
+
+        .registration-status small {
+            display: block;
+            opacity: 0.7;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .stats-container {
+            margin-top: 10px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        .stats-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .efficiency-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .efficiency-controls .btn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .efficiency-info {
+            font-size: 10px;
+            opacity: 0.8;
+            text-align: center;
+            margin-top: 8px;
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Enhanced textarea for resume template */
+        .input-group textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .template-info {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -205,6 +303,31 @@
         <div class="header">
             <h1>🎯 Resume Tailor AI</h1>
             <p>Automatically tailor your resume to job descriptions</p>
+        </div>
+
+        <!-- Efficiency Panel -->
+        <div class="efficiency-panel">
+            <div class="registration-status" id="registrationStatus">
+                <span class="status-indicator unregistered">⚪</span>
+                <span>Checking template status...</span>
+            </div>
+            
+            <div class="stats-container" id="usageStats">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+            
+            <div class="efficiency-controls">
+                <button id="reRegisterTemplate" class="btn btn-secondary btn-small">
+                    🔄 Re-register
+                </button>
+                <button id="clearRegistration" class="btn btn-secondary btn-small">
+                    🗑️ Clear
+                </button>
+            </div>
+            
+            <div class="efficiency-info">
+                💡 Efficient mode saves ~87% tokens after first registration
+            </div>
         </div>
 
         <div class="section">
@@ -242,7 +365,7 @@
 
         <div class="loading" id="loadingDiv">
             <div class="spinner"></div>
-            <p>Tailoring your resume...</p>
+            <p>Optimizing your resume...</p>
         </div>
 
         <div class="settings-toggle" id="settingsToggle">
@@ -253,7 +376,9 @@
             <div class="input-group">
                 <label for="apiKey">Claude API Key:</label>
                 <input type="password" id="apiKey" placeholder="Enter your Claude API key (sk-ant-...)">
+                <div class="template-info">Get your API key from <a href="https://console.anthropic.com/" target="_blank" style="color: #FFD54F;">console.anthropic.com</a></div>
             </div>
+            
             <div class="input-group">
                 <label for="outputFormat">Output Format:</label>
                 <select id="outputFormat">
@@ -262,15 +387,21 @@
                     <option value="text">Plain Text</option>
                 </select>
             </div>
+            
             <div class="input-group">
                 <label for="masterResume">Master Resume Template:</label>
                 <textarea id="masterResume" placeholder="Paste your complete LaTeX resume here..." rows="8"></textarea>
-                <small style="opacity: 0.8; font-size: 11px;">This will be stored locally and used as your base template</small>
+                <div class="template-info">
+                    📝 This will be stored locally and used as your base template<br>
+                    ⚠️ Changing this will require re-registration to maintain efficiency
+                </div>
             </div>
-            <button id="saveSettings" class="btn btn-secondary">Save Settings</button>
+            
+            <button id="saveSettings" class="btn btn-secondary">💾 Save Settings</button>
         </div>
     </div>
 
+    <script src="efficientOptimizer.js"></script>
     <script src="resumeTemplate.js"></script>
     <script src="popup.js"></script>
 </body>

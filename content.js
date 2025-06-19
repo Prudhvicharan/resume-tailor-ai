@@ -1,4 +1,4 @@
-// content.js - Content script for job description detection and floating button
+// content.js - Enhanced Content script for job description detection and floating button
 class JobPageDetector {
   constructor() {
     this.isJobPage = false;
@@ -20,7 +20,7 @@ class JobPageDetector {
     const title = document.title.toLowerCase();
     const content = document.body.textContent.toLowerCase();
 
-    // Step 1: Check URL patterns (quick check)
+    // Step 1: Check URL patterns (much more comprehensive)
     const jobUrlPatterns = [
       "job",
       "career",
@@ -33,71 +33,92 @@ class JobPageDetector {
       "recruit",
       "apply",
       "posting",
+      "opportunity",
+      "/jobs/",
+      "/careers/",
+      "talent",
+      "role",
     ];
 
     const hasJobUrl = jobUrlPatterns.some((pattern) => url.includes(pattern));
 
-    // Step 2: Advanced content analysis - LOWERED THRESHOLD
+    // Step 2: Check title for job indicators
+    const jobTitleWords = [
+      "job",
+      "career",
+      "position",
+      "role",
+      "opening",
+      "vacancy",
+      "hiring",
+      "employment",
+      "opportunity",
+      "engineer",
+      "developer",
+      "analyst",
+      "manager",
+      "coordinator",
+      "specialist",
+      "intern",
+    ];
+
+    const hasJobTitle = jobTitleWords.some((word) => title.includes(word));
+
+    // Step 3: MUCH more lenient content analysis
     const jobKeywords = [
       "job description",
       "job summary",
       "responsibilities",
       "requirements",
       "qualifications",
-      "experience required",
-      "skills needed",
-      "apply now",
-      "submit application",
-      "job duties",
-      "role description",
-      "position overview",
-      "what you'll do",
-      "what we're looking for",
-      "ideal candidate",
-      "minimum requirements",
-      "preferred qualifications",
-      "years of experience",
-      "education required",
-      "technical skills",
-      "about the role",
-      "job summary",
-      "web developer",
-      "software engineer",
+      "experience",
+      "skills",
+      "apply",
+      "position",
+      "role",
+      "candidate",
+      "hiring",
+      "work",
+      "employment",
+      "salary",
+      "benefits",
+      "team",
+      "company",
+      "department",
+      "years",
+      "degree",
+      "education",
       "developer",
       "engineer",
+      "analyst",
+      "manager",
     ];
 
-    // Count how many job keywords appear
+    // Count keyword matches - LOWERED threshold significantly
     const keywordMatches = jobKeywords.filter(
       (keyword) => content.includes(keyword) || title.includes(keyword)
     ).length;
 
-    console.log(
-      `📊 Keyword matches: ${keywordMatches}, URL patterns: ${hasJobUrl}`
-    );
+    console.log(`📊 Analysis results:`);
+    console.log(`   - URL patterns: ${hasJobUrl}`);
+    console.log(`   - Title patterns: ${hasJobTitle}`);
+    console.log(`   - Keyword matches: ${keywordMatches}`);
 
-    // Step 3: Check for job-specific elements and patterns
+    // Step 4: Check for job-specific elements
     const hasJobElements = this.checkJobElements();
     const hasJobStructure = this.analyzePageStructure();
 
-    console.log(`🔍 Analysis details:`);
-    console.log(`   - URL patterns: ${hasJobUrl}`);
-    console.log(`   - Keyword matches: ${keywordMatches}`);
     console.log(`   - Job elements: ${hasJobElements}`);
     console.log(`   - Job structure: ${hasJobStructure}`);
 
-    // Step 4: Make decision - MUCH MORE LENIENT
+    // Step 5: VERY lenient decision - if ANY indicator is true, consider it a job page
     const isJobPage =
       hasJobUrl || // ANY URL with job-related words
-      keywordMatches >= 2 || // Just 2+ job keywords (was 4)
+      hasJobTitle || // ANY title with job words
+      keywordMatches >= 1 || // Just 1+ job keywords (was 2+)
       hasJobElements || // ANY job elements found
       hasJobStructure || // ANY job structure found
-      title.includes("job") ||
-      title.includes("position") ||
-      title.includes("career") ||
-      content.includes("job summary") ||
-      content.includes("responsibilities") ||
-      content.includes("requirements");
+      this.checkKnownJobSites(); // Check known job sites
 
     console.log(`🎯 Final decision: ${isJobPage ? "IS" : "NOT"} a job page`);
 
@@ -105,8 +126,31 @@ class JobPageDetector {
     return isJobPage;
   }
 
+  checkKnownJobSites() {
+    const url = window.location.href.toLowerCase();
+    const knownJobSites = [
+      "linkedin.com",
+      "indeed.com",
+      "glassdoor.com",
+      "monster.com",
+      "ziprecruiter.com",
+      "workday.com",
+      "lever.co",
+      "greenhouse.io",
+      "ashbyhq.com",
+      "angellist.com",
+      "dice.com",
+      "simplyhired.com",
+      "careerbuilder.com",
+      "usajobs.gov",
+      "stackoverflow.com/jobs",
+    ];
+
+    return knownJobSites.some((site) => url.includes(site));
+  }
+
   checkJobElements() {
-    // Look for common job page elements
+    // Look for common job page elements with broader selectors
     const jobSelectors = [
       '[class*="job"]',
       '[class*="position"]',
@@ -126,6 +170,9 @@ class JobPageDetector {
       ".benefits",
       ".requirements",
       ".qualifications",
+      ".description",
+      ".summary",
+      ".details",
     ];
 
     let elementCount = 0;
@@ -138,7 +185,7 @@ class JobPageDetector {
       }
     });
 
-    return elementCount >= 3;
+    return elementCount >= 1; // Lowered from 3 to 1
   }
 
   analyzePageStructure() {
@@ -146,99 +193,106 @@ class JobPageDetector {
 
     // Look for structured job content patterns
     const structurePatterns = [
-      /responsibilities?[\s\S]{0,50}[:\-]/i,
-      /requirements?[\s\S]{0,50}[:\-]/i,
-      /qualifications?[\s\S]{0,50}[:\-]/i,
-      /experience[\s\S]{0,50}[:\-]/i,
-      /skills[\s\S]{0,50}[:\-]/i,
-      /education[\s\S]{0,50}[:\-]/i,
+      /responsibilities?[\s\S]{0,100}[:\-•]/i,
+      /requirements?[\s\S]{0,100}[:\-•]/i,
+      /qualifications?[\s\S]{0,100}[:\-•]/i,
+      /experience[\s\S]{0,100}[:\-•]/i,
+      /skills[\s\S]{0,100}[:\-•]/i,
       /\d+\+?\s*years?\s+of\s+experience/i,
       /bachelor'?s?\s+degree/i,
       /master'?s?\s+degree/i,
+      /apply\s+now/i,
+      /join\s+our\s+team/i,
     ];
 
     const patternMatches = structurePatterns.filter((pattern) =>
       pattern.test(content)
     ).length;
 
-    return patternMatches >= 2;
+    return patternMatches >= 1; // Lowered from 2 to 1
   }
 
   createFloatingButton() {
+    // Remove any existing button first
+    const existingBtn = document.getElementById("resume-tailor-floating-btn");
+    if (existingBtn) {
+      existingBtn.remove();
+    }
+
     // Create floating button
     this.floatingButton = document.createElement("div");
     this.floatingButton.id = "resume-tailor-floating-btn";
     this.floatingButton.innerHTML = `
-            <div class="floating-btn-content">
-                <span class="btn-icon">🎯</span>
-                <span class="btn-text">Tailor Resume</span>
-            </div>
-        `;
+        <div class="floating-btn-content">
+          <span class="btn-icon">🎯</span>
+          <span class="btn-text">Tailor Resume</span>
+        </div>
+      `;
 
-    // Add styles
+    // Add styles directly to avoid CSS loading issues
     const style = document.createElement("style");
     style.textContent = `
-            #resume-tailor-floating-btn {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                z-index: 10000;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 50px;
-                padding: 12px 20px;
-                box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                color: white;
-                font-size: 14px;
-                font-weight: 500;
-                border: none;
-                backdrop-filter: blur(10px);
-            }
-
-            #resume-tailor-floating-btn:hover {
-                transform: translateY(-2px) scale(1.05);
-                box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
-                background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-            }
-
-            .floating-btn-content {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .btn-icon {
-                font-size: 16px;
-            }
-
-            .btn-text {
-                white-space: nowrap;
-            }
-
-            @media (max-width: 768px) {
-                #resume-tailor-floating-btn {
-                    padding: 10px 15px;
-                    font-size: 13px;
-                }
-                
-                .btn-text {
-                    display: none;
-                }
-            }
-
-            /* Pulse animation for attention */
-            @keyframes pulse {
-                0% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); }
-                50% { box-shadow: 0 4px 30px rgba(102, 126, 234, 0.6); }
-                100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); }
-            }
-
-            #resume-tailor-floating-btn.pulse {
-                animation: pulse 2s infinite;
-            }
-        `;
+        #resume-tailor-floating-btn {
+          position: fixed !important;
+          bottom: 20px !important;
+          right: 20px !important;
+          z-index: 2147483647 !important;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          border-radius: 50px !important;
+          padding: 12px 20px !important;
+          box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important;
+          cursor: pointer !important;
+          transition: all 0.3s ease !important;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+          color: white !important;
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          border: none !important;
+          backdrop-filter: blur(10px) !important;
+          user-select: none !important;
+        }
+  
+        #resume-tailor-floating-btn:hover {
+          transform: translateY(-2px) scale(1.05) !important;
+          box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+          background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+        }
+  
+        .floating-btn-content {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+        }
+  
+        .btn-icon {
+          font-size: 16px !important;
+        }
+  
+        .btn-text {
+          white-space: nowrap !important;
+        }
+  
+        @media (max-width: 768px) {
+          #resume-tailor-floating-btn {
+            padding: 10px 15px !important;
+            font-size: 13px !important;
+          }
+          
+          .btn-text {
+            display: none !important;
+          }
+        }
+  
+        @keyframes pulse {
+          0% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important; }
+          50% { box-shadow: 0 4px 30px rgba(102, 126, 234, 0.6) !important; }
+          100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important; }
+        }
+  
+        #resume-tailor-floating-btn.pulse {
+          animation: pulse 2s infinite !important;
+        }
+      `;
 
     document.head.appendChild(style);
     document.body.appendChild(this.floatingButton);
@@ -257,54 +311,44 @@ class JobPageDetector {
     setTimeout(() => {
       this.floatingButton.classList.remove("pulse");
     }, 11000);
+
+    console.log("✅ Floating button created successfully");
   }
 
   openExtensionPopup() {
     // Send message to background script to open popup
-    chrome.runtime.sendMessage({ action: "openPopup" });
+    chrome.runtime.sendMessage({ action: "openPopup" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log("Could not open popup:", chrome.runtime.lastError.message);
+      }
+    });
   }
 
-  // Enhanced job description extraction
+  // COMPLETELY REWRITTEN job description extraction
   extractJobDescription() {
-    console.log("🔍 Starting enhanced job extraction...");
+    console.log("🔍 Starting ENHANCED job extraction...");
 
-    // Use the same intelligent extraction as in popup
-    return this.intelligentJobExtraction();
-  }
-
-  intelligentJobExtraction() {
     const pageText = document.body.textContent.toLowerCase();
 
-    // Check if this page contains job-related content
+    // Much more lenient check
     const jobIndicators = [
-      "job description",
-      "job summary",
-      "job details",
-      "position summary",
+      "job",
+      "position",
+      "role",
+      "career",
+      "work",
+      "hiring",
+      "apply",
       "responsibilities",
       "requirements",
       "qualifications",
-      "skills required",
-      "experience required",
-      "job requirements",
-      "role description",
-      "what you'll do",
-      "what we're looking for",
-      "ideal candidate",
-      "key responsibilities",
-      "essential skills",
-      "preferred qualifications",
-      "about the role",
-      "position overview",
-      "job posting",
-      "job opening",
-      "apply now",
-      "submit application",
-      "job duties",
-      "role responsibilities",
-      "minimum requirements",
-      "education required",
-      "years of experience",
+      "experience",
+      "skills",
+      "developer",
+      "engineer",
+      "analyst",
+      "manager",
+      "team",
     ];
 
     const indicatorCount = jobIndicators.filter((indicator) =>
@@ -313,48 +357,53 @@ class JobPageDetector {
 
     console.log(`📊 Found ${indicatorCount} job indicators`);
 
-    if (indicatorCount < 2) {
+    // Much lower threshold
+    if (indicatorCount < 1) {
       console.log("❌ Not enough job indicators found");
-      return "";
+      return "This page doesn't appear to contain job-related content.";
     }
 
     let bestContent = "";
     let bestScore = 0;
 
-    // Strategy 1: Try known selectors first
+    // Strategy 1: Try MANY more selectors
     const selectors = [
-      // LinkedIn
+      // Specific job board selectors
       ".jobs-description-content__text",
       ".jobs-box__html-content",
-      '[data-automation-id="jobPostingDescription"]',
-      ".jobs-description__container",
-
-      // Indeed
       ".jobsearch-jobDescriptionText",
       "#jobDescriptionText",
-      ".jobsearch-JobComponent-description",
-      ".icl-u-lg-mr--sm",
-
-      // Glassdoor
       ".jobDescriptionContent",
       ".desc",
-      '[data-test="jobDescriptionContainer"]',
+      ".job-description",
 
-      // Universal patterns
-      '[class*="job-description"]',
-      '[class*="job-content"]',
-      '[class*="job-details"]',
-      '[class*="position-description"]',
-      '[class*="role-description"]',
-      '[id*="job-description"]',
-      '[id*="job-content"]',
+      // Generic content selectors
+      '[class*="job"]',
+      '[class*="position"]',
+      '[class*="role"]',
+      '[class*="description"]',
+      '[class*="content"]',
+      '[class*="details"]',
+      '[id*="job"]',
       '[id*="description"]',
-      ".job-summary",
-      ".role-summary",
-      ".position-summary",
+      '[id*="content"]',
+
+      // Broader selectors
+      "main",
+      "article",
+      "section",
+      ".content",
+      ".main-content",
+      ".page-content",
+      ".post-content",
+      ".entry-content",
+
+      // Fallback selectors
+      "div",
+      "p",
     ];
 
-    // Try each selector
+    // Try each selector and score the content
     for (const selector of selectors) {
       try {
         const elements = document.querySelectorAll(selector);
@@ -362,7 +411,12 @@ class JobPageDetector {
           const content = this.extractCleanText(element);
           const score = this.scoreJobContent(content);
 
-          if (score > bestScore && content.length > 200) {
+          console.log(
+            `Selector: ${selector}, Score: ${score}, Length: ${content.length}`
+          );
+
+          if (score > bestScore && content.length > 50) {
+            // Lowered from 200 to 50
             bestContent = content;
             bestScore = score;
           }
@@ -372,198 +426,149 @@ class JobPageDetector {
       }
     }
 
-    // Strategy 2: Intelligent content analysis
-    if (bestScore < 5) {
-      console.log("🧠 Using intelligent analysis...");
-      const sections = this.findJobContentSections();
-
-      for (const section of sections.slice(0, 10)) {
-        // Check top 10 sections
-        const content = this.extractCleanText(section);
-        const score = this.scoreJobContent(content);
-
-        if (score > bestScore) {
-          bestContent = content;
-          bestScore = score;
-        }
-      }
-    }
-
-    // Strategy 3: Full page analysis
-    if (bestScore < 3) {
-      console.log("🌐 Analyzing full page...");
+    // Strategy 2: If still no good content, try full page
+    if (bestScore < 1) {
+      // Lowered threshold
+      console.log("🌐 Using full page content...");
       const fullContent = this.extractCleanText(document.body);
-      const jobSections = this.extractJobSectionsFromText(fullContent);
-
-      if (jobSections && jobSections.length > 300) {
-        const score = this.scoreJobContent(jobSections);
-        if (score > bestScore) {
-          bestContent = jobSections;
-          bestScore = score;
-        }
+      if (fullContent.length > 100) {
+        bestContent = fullContent;
+        bestScore = 1;
       }
     }
 
     console.log(
       `🎯 Extraction complete. Score: ${bestScore}, Length: ${bestContent.length}`
     );
+
+    if (!bestContent || bestContent.length < 50) {
+      return "Could not extract meaningful content from this page. Please ensure you're on a job posting page.";
+    }
+
     return bestContent;
   }
 
   extractCleanText(element) {
     if (!element) return "";
 
+    // Clone to avoid modifying original
     const clone = element.cloneNode(true);
 
     // Remove unwanted elements
-    const unwanted = ["script", "style", "nav", "header", "footer", "aside"];
+    const unwanted = [
+      "script",
+      "style",
+      "nav",
+      "header",
+      "footer",
+      "aside",
+      "iframe",
+    ];
     unwanted.forEach((tag) => {
       const elements = clone.querySelectorAll(tag);
       elements.forEach((el) => el.remove());
     });
 
     let text = clone.textContent || clone.innerText || "";
-    return text.replace(/\s+/g, " ").trim();
+
+    // Clean up whitespace but preserve structure
+    text = text.replace(/\s+/g, " ").trim();
+
+    return text;
   }
 
   scoreJobContent(content) {
-    if (!content || content.length < 100) return 0;
+    if (!content || content.length < 20) return 0;
 
     const text = content.toLowerCase();
     let score = 0;
 
-    // High-value keywords
+    // Much more inclusive scoring
     const highValue = [
       "responsibilities",
       "requirements",
       "qualifications",
-      "experience required",
-      "skills needed",
-      "job duties",
-      "role responsibilities",
+      "job description",
+      "about the role",
+      "what you'll do",
     ];
 
     const mediumValue = [
-      "about the role",
-      "position",
-      "candidate",
-      "team",
-      "work",
-      "development",
       "experience",
       "skills",
-      "knowledge",
+      "team",
+      "work",
+      "position",
+      "role",
+      "developer",
+      "engineer",
+      "analyst",
+      "manager",
+      "apply",
     ];
 
+    const lowValue = ["job", "career", "company", "hiring", "opportunity"];
+
+    // Score based on keyword presence
     highValue.forEach((keyword) => {
       if (text.includes(keyword)) score += 3;
     });
 
     mediumValue.forEach((keyword) => {
+      if (text.includes(keyword)) score += 2;
+    });
+
+    lowValue.forEach((keyword) => {
       if (text.includes(keyword)) score += 1;
     });
 
     // Bonus for structure
-    if (text.includes("•") || text.includes("-")) score += 2;
-    if (text.match(/\d+\+?\s*years?/)) score += 2;
+    if (text.includes("•") || text.includes("-") || text.includes("*"))
+      score += 2;
+    if (text.match(/\d+\s*years?/)) score += 2;
+    if (text.includes("bachelor") || text.includes("master")) score += 1;
 
     return score;
-  }
-
-  findJobContentSections() {
-    const sections = [];
-    const elements = document.querySelectorAll(
-      "div, section, article, main, p"
-    );
-
-    for (const element of elements) {
-      const text = element.textContent.trim();
-      if (text.length >= 300 && text.length <= 8000) {
-        const jobWordCount = this.countJobWords(text);
-        if (jobWordCount >= 3) {
-          sections.push(element);
-        }
-      }
-    }
-
-    return sections.sort((a, b) => {
-      const scoreA = this.scoreJobContent(a.textContent);
-      const scoreB = this.scoreJobContent(b.textContent);
-      return scoreB - scoreA;
-    });
-  }
-
-  countJobWords(text) {
-    const jobWords = [
-      "responsibilities",
-      "requirements",
-      "qualifications",
-      "experience",
-      "skills",
-      "duties",
-      "role",
-      "position",
-      "candidate",
-      "work",
-    ];
-
-    const lowerText = text.toLowerCase();
-    return jobWords.filter((word) => lowerText.includes(word)).length;
-  }
-
-  extractJobSectionsFromText(fullText) {
-    const lines = fullText.split("\n").filter((line) => line.trim().length > 0);
-    let jobLines = [];
-    let foundJobSection = false;
-
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-
-      if (
-        lowerLine.includes("responsibilities") ||
-        lowerLine.includes("requirements") ||
-        lowerLine.includes("qualifications") ||
-        lowerLine.includes("job description")
-      ) {
-        foundJobSection = true;
-        jobLines = [line];
-        continue;
-      }
-
-      if (foundJobSection) {
-        if (
-          this.countJobWords(line) > 0 ||
-          line.includes("•") ||
-          line.includes("-") ||
-          line.match(/^\d+\./)
-        ) {
-          jobLines.push(line);
-        } else if (jobLines.length > 10) {
-          break;
-        }
-      }
-    }
-
-    return jobLines.join("\n");
   }
 }
 
 // Initialize when DOM is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
+function initializeDetector() {
+  console.log("🚀 Initializing JobPageDetector...");
+  try {
     new JobPageDetector();
-  });
-} else {
-  new JobPageDetector();
+  } catch (error) {
+    console.error("❌ Error initializing detector:", error);
+  }
 }
+
+// Multiple initialization strategies
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeDetector);
+} else {
+  initializeDetector();
+}
+
+// Also try after a short delay to handle dynamic content
+setTimeout(initializeDetector, 2000);
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("📨 Received message:", request);
+
   if (request.action === "extractJobDescription") {
-    const detector = new JobPageDetector();
-    const description = detector.extractJobDescription();
-    sendResponse({ description });
+    try {
+      const detector = new JobPageDetector();
+      const description = detector.extractJobDescription();
+      console.log("📄 Extracted description length:", description.length);
+      sendResponse({ description });
+    } catch (error) {
+      console.error("❌ Error in message handler:", error);
+      sendResponse({ description: "Error extracting job description." });
+    }
   }
+
+  return true; // Keep message channel open
 });
 
 // Re-run detection on URL changes (for SPAs)
@@ -571,6 +576,8 @@ let currentUrl = window.location.href;
 const observer = new MutationObserver(() => {
   if (currentUrl !== window.location.href) {
     currentUrl = window.location.href;
+    console.log("🔄 URL changed, re-initializing...");
+
     setTimeout(() => {
       // Remove existing button if any
       const existingBtn = document.getElementById("resume-tailor-floating-btn");
@@ -579,7 +586,7 @@ const observer = new MutationObserver(() => {
       }
 
       // Re-initialize
-      new JobPageDetector();
+      initializeDetector();
     }, 2000); // Wait for page to load
   }
 });
@@ -588,3 +595,5 @@ observer.observe(document.body, {
   childList: true,
   subtree: true,
 });
+
+console.log("✅ Content script loaded successfully");
