@@ -39,7 +39,7 @@
     },
     "web_accessible_resources": [
       {
-        "resources": ["floating-button.html", "floating-button.css"],
+        "resources": ["resumeTemplate.js"],
         "matches": ["<all_urls>"]
       }
     ]
